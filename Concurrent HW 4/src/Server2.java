@@ -62,18 +62,21 @@ public class Server2 {
 				Scanner in = new Scanner(tcp_socket.getInputStream());	//Get input from client
 				OutputStream os = tcp_socket.getOutputStream();				//Get client output
 				PrintWriter out = new PrintWriter(os);
-				String crashC[] = crashQ.peek().split(" ");
 				String crashC = crashQ.peek();
-				if(peek)
-				int crashAfter = Integer.parseInt(crashC[1]);
-				int timeout = Integer.parseInt(crashC[2]);
-				if(commandsServed >= crashAfter) // Assuming that 
+				if(crashC != null)
 				{
-					crashQ.remove(0);
-					store.clear();
-					Thread.sleep((long)timeout);
-				 	Recover();
+					String crashCa[] = crashQ.peek().split(" ");
+					int crashAfter = Integer.parseInt(crashCa[1]);
+					int timeout = Integer.parseInt(crashCa[2]);
+					if(commandsServed >= crashAfter) // Assuming that 
+					{
+						crashQ.remove(0);
+						store.clear();
+						Thread.sleep((long)timeout);
+					 	Recover();
+					}
 				}
+				
 				try 
 				{
 					int client_num = in.nextInt();					//Take client command
