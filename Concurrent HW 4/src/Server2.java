@@ -10,6 +10,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -21,37 +22,73 @@ public class Server2 {
 	public static class ServerThread extends Thread {
 
 		private ConcurrentHashMap<Integer, Integer> store;
-		private ArrayList<String> crashQ = new ArrayList<String>();
+		private ArrayList<String> serverProx;
+		private ConcurrentLinkedQueue<Integer> requests;
+		private ConcurrentLinkedQueue<String> crashQ;
 		private Socket tcp_socket = null;
 		private int commandsServed = 0; 
 		String crashCommand;
 
-		public ServerThread(ConcurrentHashMap<Integer, Integer> inBS, Socket inS) 
+		public ServerThread(ConcurrentHashMap<Integer, Integer> inBS, Socket inS, ConcurrentLinkedQueue<String> crash, ArrayList<String> servers, ConcurrentLinkedQueue<Integer> req) 
 		{
+			requests = req;
+			serverProx = servers;
+			crashQ = crash;
 			store = inBS;
 			tcp_socket = inS;
 		}
 
-
+		public synchronized static void UpdateAll(String change)
+		{	
+			//Method for updating all the other servers
+			//Lamport mutex goes here: logical clock, queue for update requests, handling acks, etc.
+			//THe server will push the state of its bookstore to other servers
+			//Server will communicate changes by forwarding the client's command to the other servers
+			return;
+		}
+		
+		public static void Recover() //What a crash thread executes to sync it's own data back. Synchronized?
+		{	
+			//If a library is currently updating other servers, wait(); 	
+			//Try to avoid copying defunct info.
+			//Try and connect to another server, if timeout longer than 1000, try next
+			//If connect, copy library
+			//reset commandsServed
+			return;
+		}
+		
 		public void run() {
 			try {
 				Scanner in = new Scanner(tcp_socket.getInputStream());	//Get input from client
 				OutputStream os = tcp_socket.getOutputStream();				//Get client output
 				PrintWriter out = new PrintWriter(os);
-				String crashC[] = crashQ.get(0).split(" ");
+				String crashC[] = crashQ.peek().split(" ");
+				String crashC = crashQ.peek();
+				if(peek)
 				int crashAfter = Integer.parseInt(crashC[1]);
 				int timeout = Integer.parseInt(crashC[2]);
+				if(commandsServed >= crashAfter) // Assuming that 
+				{
+					crashQ.remove(0);
+					store.clear();
+					Thread.sleep((long)timeout);
+				 	Recover();
+				}
 				try 
 				{
 					int client_num = in.nextInt();					//Take client command
 					int book_num = in.nextInt();					
 					String cmd_returned = in.next();				
-
+					if(cmd_returned.contains("server"))
+					{
+						
+					}
 					if (cmd_returned.equals("reserve")) 
 					{
 						// reserve a book_num
 						if (book_num >= 1 && book_num <= MAX_BOOKS && store.putIfAbsent(book_num, client_num) == null) 
 						{
+							UpdateAll(client_num + " " + book_num + " " + cmd_returned + "\n");
 							out.println(client_num + " " + book_num);
 						} 
 						else 
@@ -63,7 +100,8 @@ public class Server2 {
 					{
 						// return a book_num
 						if (book_num >= 1 && book_num <= MAX_BOOKS && store.remove(book_num, client_num)) 
-						{
+						{							
+							UpdateAll(client_num + " " + book_num + " " + cmd_returned + "\n");
 							out.println("free " + client_num + " " + book_num);
 						} 
 						else 
@@ -81,14 +119,7 @@ public class Server2 {
 					e.printStackTrace();
 				}
 				out.flush();
-				UpdateAll(); //Update all the other servers' library
 				commandsServed++;
-				if(commandsServed == crashAfter)
-				{
-					crashQ.remove(0);
-					Thread.sleep((long)timeout);
-				 	Recover();
-				}
 				if (tcp_socket != null) 
 				{
 					tcp_socket.close();
@@ -107,10 +138,10 @@ public class Server2 {
 	}
 
 	public static void main(String[] args) {
-		final ConcurrentHashMap<Integer, Integer> book_store;
-		book_store = new ConcurrentHashMap<Integer, Integer>();
-		ArrayList<String> serverProx = new ArrayList<String>(); //List of other servers
-		ArrayList<String> crashQ = new ArrayList<String>(); //List of crash commands (if there are more than 1)
+		final ConcurrentHashMap<Integer, Integer> book_store = new ConcurrentHashMap<Integer, Integer>();
+		final ArrayList<String> serverProx = new ArrayList<String>(); //List of other servers
+		ConcurrentLinkedQueue<Integer> requests = new ConcurrentLinkedQueue<Integer>();
+		ConcurrentLinkedQueue<String> crashQ = new ConcurrentLinkedQueue<String>(); //List of crash commands (if there are more than 1 TODO: determine whether the server only looks at one crash at a time
 		Scanner in = new Scanner(System.in);	//Setup server input
 		int serverID = in.nextInt();			//Get Server ID
 		int totalServers = in.nextInt();		//Get number of servers
@@ -136,7 +167,7 @@ public class Server2 {
 					while ((sock = collector.accept()) != null) 
 					{
 						System.out.println("New TCP connection from " + sock.getInetAddress());
-						Thread t = new ServerThread(book_store, sock);
+						Thread t = new ServerThread(book_store, sock, crashQ, serverProx, requests);
 						t.start();
 					}
 					collector.close();
@@ -149,25 +180,4 @@ public class Server2 {
 		tcpThread.start();
 		
 	}
-	//TODO:
-	public static void Recover() //What a crash thread executes to sync it's own data back. Synchronized?
-	{	
-		//If a library is currently updating other servers, wait(); 	
-		//Try to avoid copying defunct info.
-		//Try and connect to another server, if timeout longer than 1000, try next
-		//If connect, copy library
-		//reset commandsServed
-		return;
-	}
-	
-	//TODO:
-	public synchronized static void UpdateAll()
-	{	
-		//Method for updating all the other servers
-		//Lamport mutex goes here: logical clock, queue for update requests, handling acks, etc.
-		//THe server will push the state of its bookstore to other servers
-		//Server will communicate changes by forwarding the client's command to the other servers
-		return;
-	}
-
 }
