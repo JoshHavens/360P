@@ -50,11 +50,12 @@ public class Server2 {
 					{
 						input=cmd_returned.split(" ");
 						requests[Integer.parseInt(input[1])]=Integer.parseInt(input[2]);//Add to queue	
-						out.println();	//Send ack message
+						out.println("acknowledgement");
 					}
 					else if (cmd_returned.contains("change")) 
 					{
 						input=cmd_returned.split(" ");//change, clientnum, booknum, reserve/return
+						//TODO: Add hashmap commands to manipulate the store
 						if(input[3].equals("reserve"))
 						{
 							//Take booknum from library, clientnum checked out
@@ -141,7 +142,6 @@ public class Server2 {
 				{	
 					serverAcks = new AtomicInteger(0);
 					out.println(operation+" "+serverID+" "+timestamp);//send request to all other servers
-					out.flush();
 					while(serverAcks.get()!=serverProx.size()-1)
 					{
 						//wait();
@@ -150,14 +150,13 @@ public class Server2 {
 				else if(operation.contains("change"))
 				{
 					out.println(operation);//send change to all other servers
-					out.flush();
 				}
 				else if(operation.contains("release"))
 				{
 					requests[serverID-1]=-1;								//delete own request from queue
 					out.println(operation+" "+serverID+" "+timestamp);	//send release to all other servers
-					out.flush();
 				}
+				out.flush();
 				out.close();
 			}
 			catch(Exception e)

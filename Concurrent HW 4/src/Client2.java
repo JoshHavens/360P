@@ -23,8 +23,8 @@ public class Client2 {
 			int numServers = in.nextInt();		//Take number of servers
 			while(setupServers < numServers)
 			{
-			serverProx.add(in.nextLine().trim());//Address also contains port number -> IP:Port#. Split up later when parsed, order of proximity is always the same
-			setupServers++;	//Increment number of Servers that have been "setup"
+				serverProx.add(in.nextLine().trim());//Address also contains port number -> IP:Port#. Split up later when parsed, order of proximity is always the same
+				setupServers++;	//Increment number of Servers that have been "setup"
 			}
 			while (in.hasNextLine()) //While there is more client code, maybe should change while loop condition to while true? 
 			{
