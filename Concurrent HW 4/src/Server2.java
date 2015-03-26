@@ -19,16 +19,22 @@ public class Server2 {
 
 	private static int MAX_BOOKS;	//Books included with input
 	private static int TCP_PORT;	//TCP port included with instructions
+	private static int SERVCOMM_PORT;	//Server request port from other servers
 	private static int serverID;
 	private static AtomicInteger commandsServed = new AtomicInteger();
 	final static ConcurrentHashMap<Integer, Integer> store = new ConcurrentHashMap<Integer, Integer>();;
 	final static ArrayList<String> serverProx = new ArrayList<String>(); //List of other servers
+	public static class Server2Server extends Thread
+	{
+		
+	}
 	
 	public static class ServerThread extends Thread {
 
 		private static int requests[];
 		private Socket tcp_socket = null;
 		private static DirectClock clock;
+		private static AtomicInteger serverAcks;
 
 		public ServerThread(Socket inS, int[] req, DirectClock v) 
 		{
@@ -41,29 +47,46 @@ public class Server2 {
 		{	//requestCS
 			clock.tick();									//Increment clock
 			requests[serverID] = clock.getValue(serverID);	//Add own timestamp to the request queue
-			//broadcastMsg("request", requests[serverID]);	//Send request message, activating the other server threads' listeners
-			while(!okayCS()){								//If update is not the earliest
-				checkForMessage();						//Check for message
+			broadcastMessage("request", requests[serverID]);	//Send request message, activating the other server threads' listeners
+			while(!okayCS()){							//Request CS
+				//wait(); 	//checkForMessage();		
 			}
 			//Send changes to other servers
-			//broadcastMsg("change", change)
-			
-			//releaseCS
-			requests[serverID] = -1;
-			
-			//broadcastMsg("release", clock.getValue(serverID));
+			broadcastMessage("change"+change, 0);
+			broadcastMessage("release", clock.getValue(serverID));
 			//Lamport mutex goes here: logical clock, queue for update requests, handling acks, etc.
 			//THe server will push the state of its bookstore to other servers
 			//Server will communicate changes by forwarding the client's command to the other servers
 			return;
 		}
-		public static void broadcastMessage(String change, int id)
+		public static void broadcastMessage(String operation, int id)
 		{
-			
+			if(operation.equals("request"))
+			{	
+				//send request to all other servers
+				serverAcks = new AtomicInteger(0);
+				while(serverAcks.get()!=serverProx.size()-1)
+				{
+					checkForMessage();//Check for acknowledgement messages
+				}
+			}
+			else if(operation.contains("change"))
+			{
+				operation=operation.substring(6);		//Remove "change" from change string
+				//send change to all other servers
+			}
+			else if(operation.equals("release"))
+			{
+				requests[serverID-1]=-1;	//delete own request from queue
+				//send release to all other servers
+			}
 		}
 		public static void checkForMessage()
 		{
-			
+			//Check the server port for server messages
+			//if()		//if message found, and it's an "ack" message
+			serverAcks.getAndIncrement();
+			return;
 		}
 		public static boolean okayCS(){
 			for(int j = 0; j < serverID; j++){
