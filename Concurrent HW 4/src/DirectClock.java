@@ -5,8 +5,11 @@ public class DirectClock {
     public DirectClock(int numProc, int id) {
         myId = id;
         clock = new int[numProc];
-        for (int i = 0; i < numProc; i++) clock[i] = 0;
-        clock[myId] = 1;
+        for (int i = 0; i < numProc; i++)
+        {
+        	clock[i] = 0;
+        }
+        clock[myId - 1] = 1;
     }
     public int getValue(int i) {
         return clock[i];

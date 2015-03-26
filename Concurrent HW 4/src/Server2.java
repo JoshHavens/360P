@@ -27,8 +27,6 @@ public class Server2 {
 	
 	public static class ServerThread extends Thread //This thread handles server requests/communication
 	{
-		
-
 		public ServerThread() 
 		{
 			super();
@@ -262,9 +260,12 @@ public class Server2 {
 		int requests[] = new int[totalServers];
 		MAX_BOOKS = in.nextInt();				//Get number of books
 		ArrayList<Integer> ports = new ArrayList<Integer>(); 
+		System.out.println("servers: " + totalServers + " serverID: " + serverID + " max books: " + MAX_BOOKS);
+		String s = in.nextLine();
 		for(int i = 0; i < totalServers; i++)
 		{
-			String s = in.nextLine();
+			s = in.nextLine();
+			System.out.println(s);
 			ports.add(Integer.parseInt(s.substring(s.indexOf(":")+1)));
 			serverProx.add(s);
 			requests[i]=-1;		//Initialize request timestamps as -1 as a flag to indicate that there is no request

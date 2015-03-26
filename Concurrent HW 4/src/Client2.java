@@ -19,8 +19,12 @@ public class Client2 {
 			int setupServers = 0;
 			//First line of input is different: client-id ci (whitespace) n
 			//Store client id, and store number of servers into a data structure, list of proximity
-			int client_num = in.nextInt();		//Change to take client ID
+			System.out.println("Initializing client");
+			int client_num = Integer.parseInt(in.next().substring(1));		//Change to take client ID
+			System.out.println(client_num);
 			int numServers = in.nextInt();		//Take number of servers
+			System.out.println("Client id: " + client_num + " Number of servers: " + numServers);
+			in.nextLine();
 			while(setupServers < numServers)
 			{
 				serverProx.add(in.nextLine().trim());//Address also contains port number -> IP:Port#. Split up later when parsed, order of proximity is always the same
@@ -89,7 +93,7 @@ public class Client2 {
 				} 
 				else 
 				{
-						in.nextLine();	//Get next command to execute
+					in.nextLine();	//Get next command to execute
 				}
 			}
 		} 
@@ -99,6 +103,7 @@ public class Client2 {
 			System.out.println("Malformed input.");
 			System.exit(1);
 		}
+		in.close();
 	}
 
 }
