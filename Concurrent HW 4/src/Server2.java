@@ -1,18 +1,15 @@
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Server2 {
@@ -21,22 +18,47 @@ public class Server2 {
 	private static int TCP_PORT;	//TCP port included with instructions
 	private static int SERVCOMM_PORT;	//Server request port from other servers
 	private static int serverID;
-	private static AtomicInteger commandsServed = new AtomicInteger();
-	final static ConcurrentHashMap<Integer, Integer> store = new ConcurrentHashMap<Integer, Integer>();;
+	private static AtomicInteger commandsServed = new AtomicInteger(); //Represents how many commands the server has serviced
+	final static ConcurrentHashMap<Integer, Integer> store = new ConcurrentHashMap<Integer, Integer>(); //This is the library store
 	final static ArrayList<String> serverProx = new ArrayList<String>(); //List of other servers
-	public static class Server2Server extends Thread
+	
+	public static class ServerThread extends Thread //This thread handles server requests/communication
 	{
+		private Socket serverSocket = null;
+
+		public ServerThread(Socket serverSocket) 
+		{
+			super();
+			this.serverSocket = serverSocket;
+		}
+		
+		public void run()
+		{
+			
+			try 
+			{
+				Scanner in = new Scanner(serverSocket.getInputStream());	//Get input from client
+				OutputStream os = serverSocket.getOutputStream();
+				PrintWriter out = new PrintWriter(os);
+			} 
+			catch (IOException e) 
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}
 		
 	}
 	
-	public static class ServerThread extends Thread {
+	public static class ClientThread extends Thread {
 
 		private static int requests[];
 		private Socket tcp_socket = null;
 		private static DirectClock clock;
 		private static AtomicInteger serverAcks;
 
-		public ServerThread(Socket inS, int[] req, DirectClock v) 
+		public ClientThread(Socket inS, int[] req, DirectClock v) 
 		{
 			requests = req;
 			tcp_socket = inS;
@@ -185,9 +207,12 @@ public class Server2 {
 		int totalServers = in.nextInt();		//Get number of servers
 		int requests[] = new int[totalServers];
 		MAX_BOOKS = in.nextInt();				//Get number of books
+		ArrayList<Integer> ports = new ArrayList<Integer>(); 
 		for(int i = 0; i < totalServers; i++)
 		{
-			serverProx.add(in.nextLine());
+			String s = in.nextLine();
+			ports.add(Integer.parseInt(s.substring(s.indexOf(":")+1)));
+			serverProx.add(s);
 			requests[i]=-1;		//Initialize request timestamps as -1 as a flag to indicate that there is no request
 		}
 		while(in.hasNext()) //Get crash instructions, may have multiple lines
@@ -197,6 +222,11 @@ public class Server2 {
 		in.close();
 		DirectClock v = new DirectClock(totalServers,serverID);
 		TCP_PORT = Integer.parseInt(serverProx.get(serverID - 1).substring(serverProx.get(serverID - 1).indexOf(":")+1));
+		SERVCOMM_PORT = TCP_PORT + 1;
+		while(ports.contains(SERVCOMM_PORT))
+		{
+			SERVCOMM_PORT++;
+		}
 		Thread tcpThread = new Thread(new Runnable() 
 		{ 
 			public void run() 
@@ -204,7 +234,9 @@ public class Server2 {
 				try
 				{
 					ServerSocket collector = new ServerSocket(TCP_PORT);
-					Socket sock;
+					ServerSocket serverCollector = new ServerSocket(SERVCOMM_PORT);
+					Socket sock = null;
+					Socket ServerSock = null;
 					/*
 					 * HERE could be where we will check if there is input from servers because it is checking one socket, we can have another socket for server communication
 					 * We could have a separate socket for server-server communication
@@ -212,30 +244,41 @@ public class Server2 {
 					 * We should move the crash logic here too because we went the whole server to sleep not just one of the threads
 					 */
 					
-					while ((sock = collector.accept()) != null) 
+					while ((sock = collector.accept()) != null || (ServerSock = serverCollector.accept()) != null) 
 					{
-						String crashC = crashQ.peek();
-						if(crashC != null)
+						if(sock != null)
 						{
-							String crashCa[] = crashQ.peek().split(" ");
-							int crashAfter = Integer.parseInt(crashCa[1]);
-							int timeout = Integer.parseInt(crashCa[2]);
-							if(commandsServed.get() >= crashAfter) // Assuming that 
+							String crashC = crashQ.peek();
+							if(crashC != null)
 							{
-								crashQ.poll();
-								store.clear();
-								System.out.println("Server " + serverID + " has crashed for + " + timeout);
-								Thread.sleep((long)timeout);
-							 	Recover();
+								String crashCa[] = crashQ.peek().split(" ");
+								int crashAfter = Integer.parseInt(crashCa[1]);
+								int timeout = Integer.parseInt(crashCa[2]);
+								if(commandsServed.get() >= crashAfter) // Assuming that 
+								{
+									crashQ.poll();
+									store.clear();
+									System.out.println("Server " + serverID + " has crashed for + " + timeout);
+									Thread.sleep((long)timeout);
+								 	Recover();
+								}
 							}
+							
+							System.out.println("New TCP connection from " + sock.getInetAddress());
+							//Add check to see if the new tcp connection is from the server
+							Thread t = new ClientThread(sock, requests, v);
+							t.start();
 						}
-						
-						System.out.println("New TCP connection from " + sock.getInetAddress());
-						//Add check to see if the new tcp connection is from the server
-						Thread t = new ServerThread(sock, requests, v);
-						t.start();
+						if(ServerSock != null)
+						{
+							//Handle server requests here
+							System.out.println("New Server connection from " + ServerSock.getInetAddress());
+							Thread s = new ServerThread(ServerSock);
+							
+						}
 					}
 					collector.close();
+					serverCollector.close();
 				} 
 				catch (Exception e) { }
 			}
