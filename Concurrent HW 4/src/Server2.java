@@ -188,23 +188,25 @@ public class Server2 {
 					 * Check if there is an input from a server and apply changes to the variables here before the serverThreads are created
 					 * We should move the crash logic here too because we went the whole server to sleep not just one of the threads
 					 */
-					String crashC = crashQ.peek();
-					if(crashC != null)
-					{
-						String crashCa[] = crashQ.peek().split(" ");
-						int crashAfter = Integer.parseInt(crashCa[1]);
-						int timeout = Integer.parseInt(crashCa[2]);
-						if(commandsServed.get() >= crashAfter) // Assuming that 
-						{
-							crashQ.poll();
-							store.clear();
-							System.out.println("Server " + serverID + " has crashed for + " + timeout);
-							Thread.sleep((long)timeout);
-						 	Recover();
-						}
-					}
+					
 					while ((sock = collector.accept()) != null) 
 					{
+						String crashC = crashQ.peek();
+						if(crashC != null)
+						{
+							String crashCa[] = crashQ.peek().split(" ");
+							int crashAfter = Integer.parseInt(crashCa[1]);
+							int timeout = Integer.parseInt(crashCa[2]);
+							if(commandsServed.get() >= crashAfter) // Assuming that 
+							{
+								crashQ.poll();
+								store.clear();
+								System.out.println("Server " + serverID + " has crashed for + " + timeout);
+								Thread.sleep((long)timeout);
+							 	Recover();
+							}
+						}
+						
 						System.out.println("New TCP connection from " + sock.getInetAddress());
 						//Add check to see if the new tcp connection is from the server
 						Thread t = new ServerThread(sock, requests, v);
