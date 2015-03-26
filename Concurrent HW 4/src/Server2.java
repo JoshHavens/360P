@@ -45,24 +45,25 @@ public class Server2 {
 				String input[];
 				try 
 				{
-					String cmd_returned = in.next();				
+					String cmd_returned = in.next();
+					input = cmd_returned.split(" ");//change, clientnum, booknum, reserve/return
 					if (cmd_returned.contains("request")) 
 					{
-						input=cmd_returned.split(" ");
 						requests[Integer.parseInt(input[1])]=Integer.parseInt(input[2]);//Add to queue	
 						out.println("acknowledgement");
 					}
 					else if (cmd_returned.contains("change")) 
 					{
-						input=cmd_returned.split(" ");//change, clientnum, booknum, reserve/return
 						//TODO: Add hashmap commands to manipulate the store
 						if(input[3].equals("reserve"))
 						{
 							//Take booknum from library, clientnum checked out
+							store.putIfAbsent(Integer.parseInt(input[2]), Integer.parseInt(input[1]));
 						}
 						else if(input[3].equals("return"))
 						{
 							//Return booknum
+							store.remove(Integer.parseInt(input[2]), Integer.parseInt(input[1]));
 						}
 						else
 						{
@@ -72,7 +73,6 @@ public class Server2 {
 					} 
 					else if(cmd_returned.contains("release"))
 					{
-						input=cmd_returned.split(" ");
 						requests[Integer.parseInt(input[1])]=-1;//Add to queue
 						//set queue to -1
 					}
@@ -116,7 +116,7 @@ public class Server2 {
 			tcp_socket = inS;
 			clock = v;
 		}
-		//TODO: THE ONLY THING WE HAVE LEFT TO DO IS DETERMINE WHERE SERVERS ARE GOING TO TAKE IN DATA/ACKS
+		
 		public synchronized static void UpdateAll(String change)
 		{	//requestCS
 			clock.tick();									//Increment clock
@@ -328,7 +328,7 @@ public class Server2 {
 							//Handle server requests here
 							System.out.println("New Server connection from " + ServerSock.getInetAddress());
 							Thread s = new ServerThread();
-							
+							s.start();	
 						}
 					}
 					collector.close();
