@@ -21,15 +21,17 @@ public class Server2 {
 	private static AtomicInteger commandsServed = new AtomicInteger(); //Represents how many commands the server has serviced
 	final static ConcurrentHashMap<Integer, Integer> store = new ConcurrentHashMap<Integer, Integer>(); //This is the library store
 	final static ArrayList<String> serverProx = new ArrayList<String>(); //List of other servers
+	private static Socket serverSocket = null;
+	private static AtomicInteger serverAcks;
+	private static int requests[];
 	
 	public static class ServerThread extends Thread //This thread handles server requests/communication
 	{
-		private Socket serverSocket = null;
+		
 
-		public ServerThread(Socket serverSocket) 
+		public ServerThread() 
 		{
 			super();
-			this.serverSocket = serverSocket;
 		}
 		
 		public void run()
@@ -40,6 +42,55 @@ public class Server2 {
 				Scanner in = new Scanner(serverSocket.getInputStream());	//Get input from client
 				OutputStream os = serverSocket.getOutputStream();
 				PrintWriter out = new PrintWriter(os);
+				String input[];
+				try 
+				{
+					String cmd_returned = in.next();				
+					if (cmd_returned.contains("request")) 
+					{
+						input=cmd_returned.split(" ");
+						requests[Integer.parseInt(input[1])]=Integer.parseInt(input[2]);//Add to queue	
+						out.println();	//Send ack message
+					}
+					else if (cmd_returned.contains("change")) 
+					{
+						input=cmd_returned.split(" ");//change, clientnum, booknum, reserve/return
+						if(input[3].equals("reserve"))
+						{
+							//Take booknum from library, clientnum checked out
+						}
+						else if(input[3].equals("return"))
+						{
+							//Return booknum
+						}
+						else
+						{
+							//Invalid command. Failed
+						}
+						//Change the library
+					} 
+					else if(cmd_returned.contains("release"))
+					{
+						input=cmd_returned.split(" ");
+						requests[Integer.parseInt(input[1])]=-1;//Add to queue
+						//set queue to -1
+					}
+					else if(cmd_returned.contains("acknowledgement")){
+						serverAcks.getAndIncrement();
+					}
+					else 
+					{
+						out.println("improper command: " + cmd_returned);
+					}
+				} 
+				catch (Exception e) 
+				{
+					e.printStackTrace();
+				}
+				out.flush();				
+				out.close();
+				in.close();
+			
 			} 
 			catch (IOException e) 
 			{
@@ -53,10 +104,10 @@ public class Server2 {
 	
 	public static class ClientThread extends Thread {
 
-		private static int requests[];
+		
 		private Socket tcp_socket = null;
 		private static DirectClock clock;
-		private static AtomicInteger serverAcks;
+		
 
 		public ClientThread(Socket inS, int[] req, DirectClock v) 
 		{
@@ -74,41 +125,45 @@ public class Server2 {
 				//wait(); 	//checkForMessage();		
 			}
 			//Send changes to other servers
-			broadcastMessage("change"+change, 0);
+			broadcastMessage("change "+change, 0);
 			broadcastMessage("release", clock.getValue(serverID));
 			//Lamport mutex goes here: logical clock, queue for update requests, handling acks, etc.
 			//THe server will push the state of its bookstore to other servers
 			//Server will communicate changes by forwarding the client's command to the other servers
 			return;
 		}
-		public static void broadcastMessage(String operation, int id)
+		public static void broadcastMessage(String operation, int timestamp)
 		{
-			if(operation.equals("request"))
-			{	
-				//send request to all other servers
-				serverAcks = new AtomicInteger(0);
-				while(serverAcks.get()!=serverProx.size()-1)
-				{
-					checkForMessage();//Check for acknowledgement messages
+			try{
+				OutputStream os = serverSocket.getOutputStream();
+				PrintWriter out = new PrintWriter(os);
+				if(operation.contains("request"))
+				{	
+					serverAcks = new AtomicInteger(0);
+					out.println(operation+" "+serverID+" "+timestamp);//send request to all other servers
+					out.flush();
+					while(serverAcks.get()!=serverProx.size()-1)
+					{
+						//wait();
+					}
 				}
+				else if(operation.contains("change"))
+				{
+					out.println(operation);//send change to all other servers
+					out.flush();
+				}
+				else if(operation.contains("release"))
+				{
+					requests[serverID-1]=-1;								//delete own request from queue
+					out.println(operation+" "+serverID+" "+timestamp);	//send release to all other servers
+					out.flush();
+				}
+				out.close();
 			}
-			else if(operation.contains("change"))
+			catch(Exception e)
 			{
-				operation=operation.substring(6);		//Remove "change" from change string
-				//send change to all other servers
+				e.printStackTrace();
 			}
-			else if(operation.equals("release"))
-			{
-				requests[serverID-1]=-1;	//delete own request from queue
-				//send release to all other servers
-			}
-		}
-		public static void checkForMessage()
-		{
-			//Check the server port for server messages
-			//if()		//if message found, and it's an "ack" message
-			serverAcks.getAndIncrement();
-			return;
 		}
 		public static boolean okayCS(){
 			for(int j = 0; j < serverID; j++){
@@ -273,7 +328,7 @@ public class Server2 {
 						{
 							//Handle server requests here
 							System.out.println("New Server connection from " + ServerSock.getInetAddress());
-							Thread s = new ServerThread(ServerSock);
+							Thread s = new ServerThread();
 							
 						}
 					}
