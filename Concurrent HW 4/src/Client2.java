@@ -67,13 +67,11 @@ public class Client2 {
 							String command_returned = "";
 							if (reader.findInLine("free") != null) 
 							{
-								System.out.println(reader.findInLine("free"));
 								command_returned = "";				//If input from server contains free, it succeeded. Is "free" needed? Output is only c#, b#
 																		//If needs change, change command_returned=""
 							} 
 							else if (reader.findInLine("fail") != null) 
 							{
-								System.out.println(reader.findInLine("fail") + " not equal null");
 								command_returned = "fail ";				//If input from server contains fail, command failed
 							}
 							int client_num_returned = reader.nextInt();	//Get client number
@@ -87,7 +85,6 @@ public class Client2 {
 						catch(SocketTimeoutException e) //Server chosen has crashed. Move checked to back of the queue and get new address and port num
 						{		
 							//headofqueue-> add to back of the queue;
-							System.out.println("ahhh");
 							serverIndex++; //Increment que of index
 						}
 					

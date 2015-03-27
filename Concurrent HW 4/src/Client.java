@@ -13,6 +13,7 @@ public class Client {
 	public static void main(String[] args) {
 		Scanner in = new Scanner(System.in);
 		try {
+			System.out.println("initializing");
 			ArrayList<String> serverProx = new ArrayList<String>();
 			int client_num = Integer.parseInt(in.next().substring(1));
 			int setupServers = 0;
@@ -27,7 +28,9 @@ public class Client {
 			}
 			String a = serverProx.get(0); //First server in the que
 			InetAddress address = InetAddress.getByName(a.substring(0,a.indexOf(":")).trim());
+			System.out.println(address);
 			int port_num = Integer.parseInt(a.substring(a.indexOf(":")+1).trim());
+			System.out.println(port_num);
 			while (in.hasNextLine()) {
 				if (in.findInLine("sleep") != null) {
 					int sleep = in.nextInt();

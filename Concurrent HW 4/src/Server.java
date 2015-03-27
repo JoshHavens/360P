@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -91,13 +92,16 @@ public class Server {
 			serverProx.add(s);	//Initialize request timestamps as -1 as a flag to indicate that there is no request
 		}
 		in.close();
+		
 		TCP_PORT = Integer.parseInt(serverProx.get(serverID - 1).substring(serverProx.get(serverID - 1).indexOf(":")+1));
 		Thread tcpThread = new Thread(new Runnable() {
 			public void run() {
 				try {
+					InetAddress locIP = InetAddress.getByName(serverProx.get(serverID - 1).substring(0, serverProx.get(serverID - 1).indexOf(":")));
+					System.out.println(locIP);
 					System.out.println("before");
 					System.out.println(TCP_PORT);
-					ServerSocket collector = new ServerSocket(TCP_PORT);
+					ServerSocket collector = new ServerSocket(TCP_PORT, 0, locIP);
 					System.out.println("after");
 					Socket sock;
 					while ((sock = collector.accept()) != null) {
@@ -106,7 +110,11 @@ public class Server {
 						t.start();
 					}
 					collector.close();
-				} catch (Exception e) { }
+				} catch (Exception e) 
+				{
+					e.printStackTrace();
+					System.out.println("exception!");
+				}
 			}
 		});
 
