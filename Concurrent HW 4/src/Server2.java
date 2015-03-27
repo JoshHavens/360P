@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,6 +74,10 @@ public class Server2 {
 					{
 						requests[Integer.parseInt(input[1])]=-1;//Add to queue
 						//set queue to -1
+					}
+					else if(cmd_returned.contains("recover"))
+					{
+						out.println("acknowledgement");
 					}
 					else if(cmd_returned.contains("acknowledgement")){
 						serverAcks.getAndIncrement();
@@ -143,7 +148,7 @@ public class Server2 {
 					out.println(operation+" "+serverID+" "+timestamp);//send request to all other servers
 					while(serverAcks.get()!=serverProx.size()-1)
 					{
-						//wait();
+						out.println(operation+" "+serverID+" "+timestamp); //send request to all other servers again
 					}
 				}
 				else if(operation.contains("change"))
@@ -252,12 +257,28 @@ public class Server2 {
 
 	public static void Recover() //What a crash thread executes to sync it's own data back. Synchronized?
 	{	
-		//Try to avoid copying defunct info.
-		//Try and connect to another server, if timeout longer than 1000, try next
-		//Get acknoledgement from other servers
-		//If connect, copy library
+		try
+		{
+		OutputStream os = serverSocket.getOutputStream();
+		PrintWriter out = new PrintWriter(os);
+		serverAcks = new AtomicInteger(0);	//Reset # of acknowledgements
+		out.println("Recover");				//Send a recover message to servers
+		while(serverAcks.get()!=serverProx.size()-1){out.println("Recover");}	//Wait until all acks received
+		int index=0;boolean notdone=true;
+		/*while(notdone)
+		{
+			try{
+			serverProx.get(index);		//Try to connect to a server
+										//Get the library
+			}
+			catch(SocketTimeoutException e){
+				index++;
+			}
+		}*/
 		commandsServed.set(0);
 		return;
+		}
+		catch(Exception e){}
 	}
 	
 	public static void main(String[] args) {
