@@ -55,7 +55,7 @@ public class Client2 {
 							int port_num = Integer.parseInt(a.substring(a.indexOf(":")+1).trim());
 							client_socket = new Socket(address, port_num);
 							System.out.println("Client port " + port_num);
-							client_socket.setSoTimeout(1000);//Throws SocketTimeoutException if time longer than 100
+							client_socket.setSoTimeout(100);//Throws SocketTimeoutException if time longer than 100
 							PrintWriter send = new PrintWriter(client_socket.getOutputStream());//Get client input and try to output to server
 							reader = new Scanner(client_socket.getInputStream());//Setup input stream for server to write to 
 							send.println(msg);	//Send server the message provided by client
@@ -86,6 +86,7 @@ public class Client2 {
 						{		
 							//headofqueue-> add to back of the queue;
 							serverIndex++; //Increment que of index
+							System.out.println("timeout, going to server: " + serverIndex);
 						}
 					
 					} //Loop back and try to establish connection

@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -79,10 +81,6 @@ public class Server2 {
 					{
 						out.println("acknowledgement");
 					}
-					else if(cmd_returned.contains("recover"))
-					{
-						out.println("acknowledgement");
-					}
 					else if(cmd_returned.contains("acknowledgement")){
 						serverAcks.getAndIncrement();
 					}
@@ -143,28 +141,44 @@ public class Server2 {
 		public static void broadcastMessage(String operation, int timestamp)
 		{
 			try{
-				OutputStream os = serverSocket.getOutputStream();
-				PrintWriter out = new PrintWriter(os);
-				if(operation.contains("request"))
-				{	
-					serverAcks = new AtomicInteger(0);
-					out.println(operation+" "+serverID+" "+timestamp);//send request to all other servers
-					while(serverAcks.get()!=serverProx.size()-1)
+				OutputStream os;
+				PrintWriter out;
+				for(String s : serverProx)
+				{
+					if(Integer.parseInt(s.substring(s.indexOf(":") + 1)) == TCP_PORT)
 					{
-						
+						System.out.println("skipping!");
+						continue;
 					}
+					if(Integer.parseInt(s.substring(s.indexOf(":") + 1)) == TCP_PORT)
+					{
+						System.out.println("this shouldn't happen");
+					}
+					System.out.println(operation);
+					serverSocket = new Socket(InetAddress.getByName(s.substring(0, s.indexOf(":"))), SERVCOMM_PORT);
+					os = serverSocket.getOutputStream();
+					out = new PrintWriter(os);
+					if(operation.contains("request"))
+					{	
+						serverAcks = new AtomicInteger(0);
+						out.println(operation+" "+serverID+" "+timestamp);//send request to all other servers
+						while(serverAcks.get()!=serverProx.size()-1)
+						{
+							
+						}
+					}
+					else if(operation.contains("change"))
+					{
+						out.println(operation);//send change to all other servers
+					}
+					else if(operation.contains("release"))
+					{
+						requests[serverID-1]=-1;								//delete own request from queue
+						out.println(operation+" "+serverID+" "+timestamp);	//send release to all other servers
+					}
+					out.flush();
+					out.close();
 				}
-				else if(operation.contains("change"))
-				{
-					out.println(operation);//send change to all other servers
-				}
-				else if(operation.contains("release"))
-				{
-					requests[serverID-1]=-1;								//delete own request from queue
-					out.println(operation+" "+serverID+" "+timestamp);	//send release to all other servers
-				}
-				out.flush();
-				out.close();
 			}
 			catch(Exception e)
 			{
@@ -306,7 +320,8 @@ public class Server2 {
 		in.close();
 		DirectClock v = new DirectClock(totalServers,serverID);
 		TCP_PORT = Integer.parseInt(serverProx.get(serverID - 1).substring(serverProx.get(serverID - 1).indexOf(":")+1));
-		SERVCOMM_PORT = TCP_PORT + 1;
+		Collections.sort(ports);
+		SERVCOMM_PORT = ports.get(0);
 		while(ports.contains(SERVCOMM_PORT))
 		{
 			SERVCOMM_PORT++;
@@ -319,15 +334,18 @@ public class Server2 {
 				{
 					ServerSocket collector = new ServerSocket(TCP_PORT);
 					ServerSocket serverCollector = new ServerSocket(SERVCOMM_PORT);
+					System.out.println(TCP_PORT);
 					Socket sock = null;
-					/*
-					 * HERE could be where we will check if there is input from servers because it is checking one socket, we can have another socket for server communication
-					 * We could have a separate socket for server-server communication
-					 * Check if there is an input from a server and apply changes to the variables here before the serverThreads are created
-					 * We should move the crash logic here too because we went the whole server to sleep not just one of the threads
-					 */
 					while ((sock = collector.accept()) != null || (serverSocket = serverCollector.accept()) != null) 
 					{
+						if(serverSocket != null)
+						{
+							//Handle server requests here
+							System.out.println("New Server connection from " + serverSocket.getInetAddress());
+							Thread s = new ServerThread();
+							s.start();	
+						}
+						
 						if(sock != null)
 						{
 							String crashC = crashQ.peek();
@@ -350,16 +368,11 @@ public class Server2 {
 							Thread t = new ClientThread(sock, requests, v);
 							t.start();
 						}
-						if(serverSocket != null)
-						{
-							//Handle server requests here
-							System.out.println("New Server connection from " + serverSocket.getInetAddress());
-							Thread s = new ServerThread();
-							s.start();	
-						}
+
 					}
 					collector.close();
 					serverCollector.close();
+					serverSocket.close();
 				} 
 				catch (Exception e) {
 					e.printStackTrace();
