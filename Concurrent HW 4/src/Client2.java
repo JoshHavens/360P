@@ -19,11 +19,8 @@ public class Client2 {
 			int setupServers = 0;
 			//First line of input is different: client-id ci (whitespace) n
 			//Store client id, and store number of servers into a data structure, list of proximity
-			System.out.println("Initializing client");
 			int client_num = Integer.parseInt(in.next().substring(1));		//Change to take client ID
-			System.out.println(client_num);
 			int numServers = in.nextInt();		//Take number of servers
-			System.out.println("Client id: " + client_num + " Number of servers: " + numServers);
 			in.nextLine();
 			while(setupServers < numServers)
 			{
@@ -57,7 +54,8 @@ public class Client2 {
 							InetAddress address = InetAddress.getByName(a.substring(0,a.indexOf(":")).trim());
 							int port_num = Integer.parseInt(a.substring(a.indexOf(":")+1).trim());
 							client_socket = new Socket(address, port_num);
-							client_socket.setSoTimeout(100);//Throws SocketTimeoutException if time longer than 100
+							System.out.println("Client port " + port_num);
+							client_socket.setSoTimeout(1000);//Throws SocketTimeoutException if time longer than 100
 							PrintWriter send = new PrintWriter(client_socket.getOutputStream());//Get client input and try to output to server
 							reader = new Scanner(client_socket.getInputStream());//Setup input stream for server to write to 
 							send.println(msg);	//Send server the message provided by client
@@ -65,14 +63,17 @@ public class Client2 {
 							notConnected=false;
 							serverIndex = 0;
 							
+							
 							String command_returned = "";
 							if (reader.findInLine("free") != null) 
 							{
+								System.out.println(reader.findInLine("free"));
 								command_returned = "";				//If input from server contains free, it succeeded. Is "free" needed? Output is only c#, b#
 																		//If needs change, change command_returned=""
 							} 
 							else if (reader.findInLine("fail") != null) 
 							{
+								System.out.println(reader.findInLine("fail") + " not equal null");
 								command_returned = "fail ";				//If input from server contains fail, command failed
 							}
 							int client_num_returned = reader.nextInt();	//Get client number
@@ -86,6 +87,7 @@ public class Client2 {
 						catch(SocketTimeoutException e) //Server chosen has crashed. Move checked to back of the queue and get new address and port num
 						{		
 							//headofqueue-> add to back of the queue;
+							System.out.println("ahhh");
 							serverIndex++; //Increment que of index
 						}
 					

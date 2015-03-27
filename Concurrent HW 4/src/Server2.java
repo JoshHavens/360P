@@ -110,6 +110,7 @@ public class Server2 {
 
 		public ClientThread(Socket inS, int[] req, DirectClock v) 
 		{
+			System.out.println("new client thread constructed");
 			requests = req;
 			tcp_socket = inS;
 			clock = v;
@@ -187,20 +188,25 @@ public class Server2 {
 				
 				try 
 				{
+					System.out.println("RUNNING!");
 					int client_num = in.nextInt();					//Take client command
 					int book_num = in.nextInt();					
-					String cmd_returned = in.next();				
+					String cmd_returned = in.next();	
+					System.out.println("Client: " + client_num + " " + cmd_returned + " " + book_num);
 					if (cmd_returned.equals("reserve")) 
 					{
 						// reserve a book_num
 						if (book_num >= 1 && book_num <= MAX_BOOKS && store.putIfAbsent(book_num, client_num) == null) 
 						{
-							UpdateAll(client_num + " " + book_num + " " + cmd_returned + "\n");
+							//UpdateAll(client_num + " " + book_num + " " + cmd_returned + "\n");
+							System.out.println("faile");
 							out.println(client_num + " " + book_num);
 						} 
 						else 
 						{
+							System.out.println("faile");
 							out.println("fail " + client_num + " " + book_num);
+							
 						}
 					}
 					else if (cmd_returned.equals("return")) 
@@ -208,16 +214,19 @@ public class Server2 {
 						// return a book_num
 						if (book_num >= 1 && book_num <= MAX_BOOKS && store.remove(book_num, client_num)) 
 						{							
-							UpdateAll(client_num + " " + book_num + " " + cmd_returned + "\n");
+							//UpdateAll(client_num + " " + book_num + " " + cmd_returned + "\n");
+							System.out.println("faile");
 							out.println("free " + client_num + " " + book_num);
 						} 
 						else 
 						{
+							System.out.println("faile");
 							out.println("fail " + client_num + " " + book_num);
 						}
 					} 
 					else 
 					{
+						System.out.println("faile");
 						out.println("improper command: " + cmd_returned);
 					}
 				} 
@@ -252,7 +261,7 @@ public class Server2 {
 	}
 	
 	public static void main(String[] args) {
-		commandsServed.set(0);;
+		commandsServed.set(0);
 		ConcurrentLinkedQueue<String> crashQ = new ConcurrentLinkedQueue<String>(); //List of crash commands
 		Scanner in = new Scanner(System.in);	//Setup server input
 		serverID = in.nextInt();			//Get Server ID
@@ -288,19 +297,24 @@ public class Server2 {
 			{						   
 				try
 				{
+					
+					System.out.println(TCP_PORT);
+					System.out.println(SERVCOMM_PORT);
 					ServerSocket collector = new ServerSocket(TCP_PORT);
+					System.out.println("pre whlie loop");
 					ServerSocket serverCollector = new ServerSocket(SERVCOMM_PORT);
+					System.out.println("pre whlie loop");
 					Socket sock = null;
-					Socket ServerSock = null;
 					/*
 					 * HERE could be where we will check if there is input from servers because it is checking one socket, we can have another socket for server communication
 					 * We could have a separate socket for server-server communication
 					 * Check if there is an input from a server and apply changes to the variables here before the serverThreads are created
 					 * We should move the crash logic here too because we went the whole server to sleep not just one of the threads
 					 */
-					
-					while ((sock = collector.accept()) != null || (ServerSock = serverCollector.accept()) != null) 
+					System.out.println("pre whlie loop");
+					while ((sock = collector.accept()) != null || (serverSocket = serverCollector.accept()) != null) 
 					{
+						System.out.println("entering while loop");
 						if(sock != null)
 						{
 							String crashC = crashQ.peek();
@@ -318,16 +332,17 @@ public class Server2 {
 								 	Recover();
 								}
 							}
-							
-							System.out.println("New TCP connection from " + sock.getInetAddress());
+							System.out.println("something in socket");
+							System.out.println("New TCP connection from lolol" + sock.getInetAddress());
 							//Add check to see if the new tcp connection is from the server
+							System.out.println("making new thread");
 							Thread t = new ClientThread(sock, requests, v);
 							t.start();
 						}
-						if(ServerSock != null)
+						if(serverSocket != null)
 						{
 							//Handle server requests here
-							System.out.println("New Server connection from " + ServerSock.getInetAddress());
+							System.out.println("New Server connection from " + serverSocket.getInetAddress());
 							Thread s = new ServerThread();
 							s.start();	
 						}
