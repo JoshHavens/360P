@@ -114,7 +114,6 @@ public class Server2 {
 
 		public ClientThread(Socket inS, int[] req, DirectClock v) 
 		{
-			System.out.println("new client thread constructed");
 			requests = req;
 			tcp_socket = inS;
 			clock = v;
@@ -192,23 +191,19 @@ public class Server2 {
 				
 				try 
 				{
-					System.out.println("RUNNING!");
 					int client_num = in.nextInt();					//Take client command
 					int book_num = in.nextInt();					
 					String cmd_returned = in.next();	
-					System.out.println("Client: " + client_num + " " + cmd_returned + " " + book_num);
 					if (cmd_returned.equals("reserve")) 
 					{
 						// reserve a book_num
 						if (book_num >= 1 && book_num <= MAX_BOOKS && store.putIfAbsent(book_num, client_num) == null) 
 						{
-							//UpdateAll(client_num + " " + book_num + " " + cmd_returned + "\n");
-							System.out.println("faile");
+							UpdateAll(client_num + " " + book_num + " " + cmd_returned + "\n");
 							out.println(client_num + " " + book_num);
 						} 
 						else 
-						{
-							System.out.println("faile");
+						{ 
 							out.println("fail " + client_num + " " + book_num);
 							
 						}
@@ -218,19 +213,16 @@ public class Server2 {
 						// return a book_num
 						if (book_num >= 1 && book_num <= MAX_BOOKS && store.remove(book_num, client_num)) 
 						{							
-							//UpdateAll(client_num + " " + book_num + " " + cmd_returned + "\n");
-							System.out.println("faile");
+							UpdateAll(client_num + " " + book_num + " " + cmd_returned + "\n");
 							out.println("free " + client_num + " " + book_num);
 						} 
 						else 
 						{
-							System.out.println("faile");
 							out.println("fail " + client_num + " " + book_num);
 						}
 					} 
 					else 
 					{
-						System.out.println("faile");
 						out.println("improper command: " + cmd_returned);
 					}
 				} 
@@ -262,7 +254,7 @@ public class Server2 {
 			PrintWriter out = new PrintWriter(os);
 			serverAcks = new AtomicInteger(0);	//Reset # of acknowledgements
 			out.println("Recover");				//Send a recover message to servers
-			while(serverAcks.get()!=serverProx.size()-1){out.println("Recover");}	//Wait until all acks received
+			while(serverAcks.get()!=serverProx.size()-1){}	//Wait until all acks received
 			int index=0;boolean notdone=true;
 			/*while(notdone)
 			{
@@ -317,13 +309,8 @@ public class Server2 {
 			{						   
 				try
 				{
-					
-					System.out.println(TCP_PORT);
-					System.out.println(SERVCOMM_PORT);
 					ServerSocket collector = new ServerSocket(TCP_PORT);
-					System.out.println("pre whlie loop");
 					ServerSocket serverCollector = new ServerSocket(SERVCOMM_PORT);
-					System.out.println("pre whlie loop");
 					Socket sock = null;
 					/*
 					 * HERE could be where we will check if there is input from servers because it is checking one socket, we can have another socket for server communication
@@ -331,10 +318,8 @@ public class Server2 {
 					 * Check if there is an input from a server and apply changes to the variables here before the serverThreads are created
 					 * We should move the crash logic here too because we went the whole server to sleep not just one of the threads
 					 */
-					System.out.println("pre whlie loop");
 					while ((sock = collector.accept()) != null || (serverSocket = serverCollector.accept()) != null) 
 					{
-						System.out.println("entering while loop");
 						if(sock != null)
 						{
 							String crashC = crashQ.peek();
@@ -349,13 +334,11 @@ public class Server2 {
 									store.clear();
 									System.out.println("Server " + serverID + " has crashed for + " + timeout);
 									Thread.sleep((long)timeout);
-								 	Recover();
+								 	//Recover();
 								}
 							}
-							System.out.println("something in socket");
 							System.out.println("New TCP connection from " + sock.getInetAddress());
 							//Add check to see if the new tcp connection is from the server
-							System.out.println("making new thread");
 							Thread t = new ClientThread(sock, requests, v);
 							t.start();
 						}
