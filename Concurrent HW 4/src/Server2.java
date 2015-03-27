@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,6 +74,10 @@ public class Server2 {
 					{
 						requests[Integer.parseInt(input[1])]=-1;//Add to queue
 						//set queue to -1
+					}
+					else if(cmd_returned.contains("recover"))
+					{
+						out.println("acknowledgement");
 					}
 					else if(cmd_returned.contains("recover"))
 					{
@@ -146,7 +151,7 @@ public class Server2 {
 					out.println(operation+" "+serverID+" "+timestamp);//send request to all other servers
 					while(serverAcks.get()!=serverProx.size()-1)
 					{
-						//wait();
+						
 					}
 				}
 				else if(operation.contains("change"))
@@ -269,7 +274,10 @@ public class Server2 {
 			commandsServed.set(0);
 			return;
 		}
-		catch(Exception e){}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
 	}
 	
 	public static void main(String[] args) {
