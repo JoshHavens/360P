@@ -148,7 +148,7 @@ public class Server2 {
 					out.println(operation+" "+serverID+" "+timestamp);//send request to all other servers
 					while(serverAcks.get()!=serverProx.size()-1)
 					{
-						out.println(operation+" "+serverID+" "+timestamp); //send request to all other servers again
+						
 					}
 				}
 				else if(operation.contains("change"))
@@ -263,7 +263,7 @@ public class Server2 {
 		PrintWriter out = new PrintWriter(os);
 		serverAcks = new AtomicInteger(0);	//Reset # of acknowledgements
 		out.println("Recover");				//Send a recover message to servers
-		while(serverAcks.get()!=serverProx.size()-1){out.println("Recover");}	//Wait until all acks received
+		while(serverAcks.get()!=serverProx.size()-1){}	//Wait until all acks received
 		int index=0;boolean notdone=true;
 		/*while(notdone)
 		{
